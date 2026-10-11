@@ -65,3 +65,11 @@ Include `<kata3/runtime.hpp>`. `NarrativeRuntime::select(scene, approved_narrati
 **Authority boundary:** a `ChoiceEvent` is a declared narrative consequence, **not an applied world-state mutation**. KATA3 does not select player actions, call models, or write to HAKUI/SpiralOS HOME. Replay assumes an immutable approved narrative; cross-version migrations, persistent storage, cryptographic audit proofs and external world-state dispatch remain outside this release.
 
 Run `cmake -S . -B build -DBUILD_TESTING=ON && cmake --build build && ctest --test-dir build --output-on-failure`. The C4 test target is `kata3.runtime`.
+
+## C4.2 — Persistent narrative memory (v0.5.0)
+
+Header-only `NarrativeStorage` in `include/kata3/storage.hpp` writes a bounded (≤ 2 MiB) `KATA3_LEDGER_V1` snapshot with little-endian event records and a noncryptographic FNV-1a checksum. Storage is scoped to the approved scene ID and objective ID, and replays each choice against the supplied narrative contract on load. A failed decode or load does not replace the caller's current state.
+
+`save(path, scene, narrative, state)` writes to a sibling `.pending` path and renames it into place; callers must ensure single-writer access. These operations are **not** guaranteed atomic or durable on all filesystems, especially Windows replacement and power loss. Symlink checks are not race-free. The checksum detects accidental corruption, not malicious tampering. Storage does not choose player actions or mutate SPIRAL-OS-HOME/HAKUI state.
+
+`tests/storage_tests.cpp` checks roundtrip, truncation, checksum failure, wrong scene/contract, rejected forged events and preserved destination state on load failure. Cross-platform CI verification and interrupted-write recovery remain open.
