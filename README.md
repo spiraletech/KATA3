@@ -55,3 +55,13 @@ Build with CMake and run CTest in Debug or Release. The `kata3.narrative` target
 This is **structural enforcement**, not proof of semantic canon consistency, prompt-injection security, artistic quality or model compliance. A caller should check `GenerationReview::accepted` before displaying or storing output.
 
 Run with `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON && cmake --build build && ctest --test-dir build --output-on-failure`.
+
+## C4 — deterministic choice ledger (v0.4)
+
+Include `<kata3/runtime.hpp>`. `NarrativeRuntime::select(scene, approved_narrative, state, choice_id, expected_sequence)` requires an **explicit player-selected choice ID**. It appends one symbolic `ChoiceEvent` only when the choice is approved, the caller's expected history length matches, the existing ledger is valid and both canon and autonomy laws are enabled.
+
+`NarrativeRuntime::replay(scene, approved_narrative, events)` rebuilds the ledger by checking every event's sequence, selected choice and event identifier against the approved narrative. Invalid histories are rejected without modifying the caller's state.
+
+**Authority boundary:** a `ChoiceEvent` is a declared narrative consequence, **not an applied world-state mutation**. KATA3 does not select player actions, call models, or write to HAKUI/SpiralOS HOME. Replay assumes an immutable approved narrative; cross-version migrations, persistent storage, cryptographic audit proofs and external world-state dispatch remain outside this release.
+
+Run `cmake -S . -B build -DBUILD_TESTING=ON && cmake --build build && ctest --test-dir build --output-on-failure`. The C4 test target is `kata3.runtime`.
