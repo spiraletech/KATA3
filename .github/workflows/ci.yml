@@ -20,3 +20,14 @@ jobs:
         run: cmake --build build --config ${{ matrix.configuration }} --parallel
       - name: Test
         run: ctest --test-dir build -C ${{ matrix.configuration }} --output-on-failure
+      - name: Package tested console application
+        if: matrix.configuration == 'Release'
+        working-directory: build
+        run: cpack -C ${{ matrix.configuration }} -G ZIP
+      - name: Upload release package
+        if: matrix.configuration == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kata3-play-${{ matrix.os }}
+          path: build/KATA3-Play-*.zip
+          if-no-files-found: error
