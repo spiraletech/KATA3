@@ -1,6 +1,7 @@
 #include <kata3/storage.hpp>
 #include <cassert>
 #include <filesystem>
+#include <fstream>
 int main(){
  using namespace kata3;
  Scene s;s.id="scene_1";s.preserve_canon=true;s.player_autonomy=true;s.actors.push_back({"hero","PLAYER","EXPLORE"});
@@ -20,5 +21,16 @@ int main(){
  NarrativeState receiver;assert(NarrativeStorage::load(saved,s,n,receiver));assert(receiver.history.size()==2);
  auto bad=receiver;bad.history[0].event_id="FORGED";assert(!NarrativeStorage::save(saved,s,n,bad));
  auto before=receiver.history.size();assert(!NarrativeStorage::load(saved,other,n,receiver));assert(receiver.history.size()==before);
+ // An existing writer claim must not be stolen or erased.
+ auto lock=saved;lock+=".pending.lock";
+ assert(std::filesystem::create_directory(lock));
+ {std::ofstream marker(lock/"marker",std::ios::binary);marker<<"keep";}
+ assert(!NarrativeStorage::save(saved,s,n,state));
+ assert(std::filesystem::exists(lock/"marker"));
+ assert(std::filesystem::exists(lock));
+ std::filesystem::remove(lock/"marker",ec);
+ std::filesystem::remove(lock,ec);
+ assert(NarrativeStorage::save(saved,s,n,state));
+ assert(!std::filesystem::exists(lock));
  std::filesystem::remove(saved,ec);
 }
