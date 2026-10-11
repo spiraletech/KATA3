@@ -25,4 +25,13 @@ int main(){
  assert(!kata3::NarrativeRuntime::select(s,n,state,"not_offered",original_size));
  assert(state.history.size()==original_size);
 
+ // Check deterministic bounded replay at the documented history limit.
+ std::vector<kata3::ChoiceEvent> long_log;
+ for(std::uint64_t i=1;i<=10000;++i)long_log.push_back({i,"ask","ask_key"});
+ auto large=kata3::NarrativeRuntime::replay(s,n,long_log);
+ assert(large && large->history.size()==10000);
+ assert(!kata3::NarrativeRuntime::select(s,n,*large,"leave",10000));
+ long_log.push_back({10001,"ask","ask_key"});
+ assert(!kata3::NarrativeRuntime::replay(s,n,long_log));
+
 }
