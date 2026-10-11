@@ -87,3 +87,11 @@ On Windows, the executable may be located under `build/Release/kata3_play.exe`.
 The console prints the scene, objective, NPC dialogue, and available options, then reads **one explicitly player-selected choice ID**. `quit` exits without modifying the ledger. A valid choice is persisted via `NarrativeStorage`. Restart with the same save path to see the recovered history count and choose again. Invalid selections and invalid pre-existing saves return nonzero without overwriting the save. Saved `EVENT:` strings are symbolic records only; HAKUI and SPIRAL-OS-HOME are never modified.
 
 Automated regression target: `kata3.console`, which tests two sessions, restore after restart, invalid selection and preserved history. Filesystem replacement and crash durability still depend on platform and require follow-up hardening.
+
+## V3 — HAKUI read-only snapshot boundary (v0.7)
+
+`include/kata3/hakui_view.hpp` defines a small, provider-neutral `kata3::hakui::Snapshot` value type. HAKUI (or an authorized host adapter) can **copy** current scene and actor metadata into it and call `import_read_only(snapshot)` to produce a validated KATA3 scene. This API does not link HAKUI, invoke engine code, expose mutable handles, dispatch events, or write into SPIRAL-OS-HOME.
+
+The importer requires an explicit `HAKUI` world label, approved canon and player-input authority, one declared PLAYER actor, unique actor IDs, supported PLAYER/NPC roles, and bounded identifiers/actor counts. Invalid input returns diagnostics without an imported scene. No player choice is automatically made.
+
+`kata3.hakui_view` is registered in CTest and verifies acceptance, rejection and non-mutation. **No live engine connection is claimed.** The HAKUI side still needs an agreed read-only snapshot exporter, and the available remote CI results have not been verified.
