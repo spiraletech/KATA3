@@ -15,4 +15,14 @@ int main(){
  auto canon=s;canon.preserve_canon=false;assert(!kata3::NarrativeRuntime::select(canon,n,state,"ask",2));
  auto autonomy=s;autonomy.player_autonomy=false;assert(!kata3::NarrativeRuntime::select(autonomy,n,state,"ask",2));
  auto corrupt=state;corrupt.history[0].choice_id="unapproved";assert(!kata3::NarrativeRuntime::select(s,n,corrupt,"ask",2));
+ auto empty=kata3::NarrativeRuntime::replay(s,n,{});
+ assert(empty && empty->history.empty());
+ auto duplicated=n;duplicated.choices.push_back(duplicated.choices.front());
+ assert(!kata3::NarrativeRuntime::select(s,duplicated,state,"ask",2));
+ auto reordered=state.history;std::swap(reordered[0],reordered[1]);
+ assert(!kata3::NarrativeRuntime::replay(s,n,reordered));
+ auto original_size=state.history.size();
+ assert(!kata3::NarrativeRuntime::select(s,n,state,"not_offered",original_size));
+ assert(state.history.size()==original_size);
+
 }
