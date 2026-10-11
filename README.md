@@ -73,3 +73,17 @@ Header-only `NarrativeStorage` in `include/kata3/storage.hpp` writes a bounded (
 `save(path, scene, narrative, state)` writes to a sibling `.pending` path and renames it into place; callers must ensure single-writer access. These operations are **not** guaranteed atomic or durable on all filesystems, especially Windows replacement and power loss. Symlink checks are not race-free. The checksum detects accidental corruption, not malicious tampering. Storage does not choose player actions or mutate SPIRAL-OS-HOME/HAKUI state.
 
 `tests/storage_tests.cpp` checks roundtrip, truncation, checksum failure, wrong scene/contract, rejected forged events and preserved destination state on load failure. Cross-platform CI verification and interrupted-write recovery remain open.
+
+## V1 — Playable console vertical slice (v0.6)
+
+Build using CMake and launch `kata3_play` with three positional paths: the scene file, narrative file, and writable save file. For example, from the project root after building:
+
+```sh
+./build/kata3_play examples/dock.scene.k3 examples/dock.narrative.k3 my-dock.k3save
+```
+
+On Windows, the executable may be located under `build/Release/kata3_play.exe`.
+
+The console prints the scene, objective, NPC dialogue, and available options, then reads **one explicitly player-selected choice ID**. `quit` exits without modifying the ledger. A valid choice is persisted via `NarrativeStorage`. Restart with the same save path to see the recovered history count and choose again. Invalid selections and invalid pre-existing saves return nonzero without overwriting the save. Saved `EVENT:` strings are symbolic records only; HAKUI and SPIRAL-OS-HOME are never modified.
+
+Automated regression target: `kata3.console`, which tests two sessions, restore after restart, invalid selection and preserved history. Filesystem replacement and crash durability still depend on platform and require follow-up hardening.
