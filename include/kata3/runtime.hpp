@@ -13,6 +13,7 @@ struct NarrativeState { std::vector<ChoiceEvent> history; };
 enum class ResolutionError { none, invalid_scene, invalid_contract, unknown_choice, stale_sequence, invalid_history };
 struct Resolution { ResolutionError error{ResolutionError::none}; std::optional<ChoiceEvent> emitted; explicit operator bool() const noexcept {return emitted.has_value();} };
 class NarrativeRuntime {
+ static constexpr std::size_t max_history = 10000;
  static bool legal(const Scene& scene, const Narrative& contract) {
   if(!scene.preserve_canon || !scene.player_autonomy || contract.objective_id.empty() || contract.choices.size()<2)return false;
   if(std::none_of(scene.actors.begin(),scene.actors.end(),[](const Actor& a){return a.role=="PLAYER";}))return false;
@@ -28,7 +29,7 @@ public:
  // Caller supplies a concrete player-selected choice and expected history length.
  static Resolution select(const Scene& scene,const Narrative& contract,NarrativeState& state,std::string_view selected,std::uint64_t expected_sequence) {
   if(!legal(scene,contract))return {ResolutionError::invalid_contract,{}};
-  if(expected_sequence!=state.history.size())return {ResolutionError::stale_sequence,{}};
+  if(expected_sequence!=state.history.size() || state.history.size()>=max_history)return {ResolutionError::stale_sequence,{}};
   if(!valid_history(contract,state))return {ResolutionError::invalid_history,{}};
   const auto* choice=lookup(contract,selected);
   if(!choice)return {ResolutionError::unknown_choice,{}};
@@ -44,9 +45,12 @@ public:
  static std::optional<NarrativeState> replay(const Scene& scene,const Narrative& contract,const std::vector<ChoiceEvent>& events) {
   if(!legal(scene,contract))return std::nullopt;
   NarrativeState result;
-  for(const auto& event:events) {
-   auto r=select(scene,contract,result,event.choice_id,result.history.size());
-   if(!r||r.emitted->sequence!=event.sequence||r.emitted->event_id!=event.event_id)return std::nullopt;
+  if(events.size()>max_history)return std::nullopt;
+  for(std::size_t i=0;i<events.size();++i) {
+   const auto& event=events[i];
+   const auto* approved=lookup(contract,event.choice_id);
+   if(!approved || event.sequence!=i+1 || event.event_id!=approved->consequence)return std::nullopt;
+   result.history.push_back(event);
   }
   return result;
  }
