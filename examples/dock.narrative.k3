@@ -1,0 +1,4 @@
+OBJECTIVE find_dock | Discover who closed the waterfront
+DIALOGUE guide | The docks have been quiet tonight.
+CHOICE ask | Ask the guide | EVENT:ask_guide
+CHOICE leave | Leave the waterfront | EVENT:leave_dock
