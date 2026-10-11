@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(KATA3 VERSION 0.6.0 LANGUAGES CXX)
+project(KATA3 VERSION 0.6.1 LANGUAGES CXX)
 add_library(kata3_scene src/scene.cpp src/narrative.cpp src/generation.cpp src/console.cpp)
 add_library(KATA3::Scene ALIAS kata3_scene)
 target_compile_features(kata3_scene PUBLIC cxx_std_20)
@@ -70,3 +70,11 @@ if(BUILD_TESTING)
  endif()
  add_test(NAME kata3.console COMMAND kata3_console_tests)
 endif()
+
+# Portable console distribution. CPack includes the executable and sample assets.
+install(TARGETS kata3_play RUNTIME DESTINATION .)
+install(FILES examples/dock.scene.k3 examples/dock.narrative.k3 DESTINATION examples)
+set(CPACK_PACKAGE_NAME "KATA3-Play")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_GENERATOR "ZIP")
+include(CPack)
