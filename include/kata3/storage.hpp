@@ -42,11 +42,20 @@ public:
   auto encoded=encode(scene,contract,state);if(!encoded)return false;
   std::error_code ec;
   if(std::filesystem::is_symlink(std::filesystem::symlink_status(path,ec)))return false;
-  auto staging=path;staging+=".pending";ec.clear();
-  if(std::filesystem::is_symlink(std::filesystem::symlink_status(staging,ec)))return false;
-  {std::ofstream f(staging,std::ios::binary|std::ios::trunc);if(!f)return false;f.write(encoded->data(),static_cast<std::streamsize>(encoded->size()));f.flush();if(!f.good()){f.close();std::filesystem::remove(staging,ec);return false;}}
-  std::filesystem::rename(staging,path,ec);
-  if(ec){std::filesystem::remove(staging,ec);return false;}
+  // An exclusive staging directory prevents competing writers from truncating
+  // the same pending snapshot. Never delete a preexisting writer claim.
+  auto lock=path;lock+=".pending.lock";
+  ec.clear();
+  if(!std::filesystem::create_directory(lock,ec))return false;
+  auto staging=lock/"snapshot";
+  auto cleanup=[&](){std::error_code ignored;std::filesystem::remove(staging,ignored);std::filesystem::remove(lock,ignored);};
+  {std::ofstream f(staging,std::ios::binary|std::ios::trunc);
+   if(!f){cleanup();return false;}
+   f.write(encoded->data(),static_cast<std::streamsize>(encoded->size()));f.flush();
+   if(!f.good()){f.close();cleanup();return false;}}
+  ec.clear();std::filesystem::rename(staging,path,ec);
+  if(ec){cleanup();return false;}
+  cleanup();
   return true;
  }
  static bool load(const std::filesystem::path& path,const Scene& scene,const Narrative& contract,NarrativeState& destination){
