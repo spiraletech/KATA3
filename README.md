@@ -40,3 +40,18 @@ CHOICE leave | Walk away | EVENT:leave_tower
 Rules: one OBJECTIVE, at least two uniquely identified CHOICE directives, dialogue actors must exist in the scene, and every choice declares a symbolic EVENT consequence. The scene must contain a PLAYER actor and enable both canon and autonomy laws. A consequence is a proposal for a future simulation adapter, not a state mutation. Tests reject malformed choices, duplicate IDs, missing player agency and unknown speakers. The grammar intentionally reserves `|` as the field delimiter; escaping and richer storytelling semantics are future work.
 
 Build with CMake and run CTest in Debug or Release. The `kata3.narrative` target is independent of model providers or network access.
+
+## Provider-neutral scene generation bridge v0.3
+
+`compile_generation_request(scene, approved_narrative)` produces a text-generation instruction containing the scene's actors, fixed objective and approved choices. No model API is called by this library.
+
+`review_generation(response, scene, approved_narrative)` parses the proposed text using the C2 narrative parser and enforces:
+- Existing scene must preserve canon and player autonomy.
+- Model output must preserve the exact objective and the **ordered** choice list, including all labels and symbolic event identifiers.
+- Dialogue speakers must be declared actors and must not be player actors.
+- Unknown directives, missing choices and oversized responses (over 64 KiB) are rejected.
+- Review has no side effects and cannot execute `EVENT:` or infer player action.
+
+This is **structural enforcement**, not proof of semantic canon consistency, prompt-injection security, artistic quality or model compliance. A caller should check `GenerationReview::accepted` before displaying or storing output.
+
+Run with `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON && cmake --build build && ctest --test-dir build --output-on-failure`.
