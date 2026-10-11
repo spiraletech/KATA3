@@ -95,3 +95,9 @@ Automated regression target: `kata3.console`, which tests two sessions, restore 
 The importer requires an explicit `HAKUI` world label, approved canon and player-input authority, one declared PLAYER actor, unique actor IDs, supported PLAYER/NPC roles, and bounded identifiers/actor counts. Invalid input returns diagnostics without an imported scene. No player choice is automatically made.
 
 `kata3.hakui_view` is registered in CTest and verifies acceptance, rejection and non-mutation. **No live engine connection is claimed.** The HAKUI side still needs an agreed read-only snapshot exporter, and the available remote CI results have not been verified.
+
+## V3.1 — host-side read-only snapshot exporter (v0.7.1)
+
+`include/kata3/hakui_export.hpp` defines `ReadOnlySceneSource`, a **host-implemented, const-only C++20 interface**, and `export_read_only(const ReadOnlySceneSource&)`. It copies approved scene and actor observations into the V3 `Snapshot`, validates them through `import_read_only`, and returns either a complete snapshot or diagnostics. The exporter has no mutable engine handles or dispatch functions. `kata3.hakui_export` tests successful export, non-aliasing, duplicate actors, host rejection and bounds checks.
+
+**Integration boundary:** The canonical `hakui` repository README documents engine authority, but a concrete native scene/actor API was not located during this audit. This commit does **not** implement or claim a live engine exporter. HAKUI must supply a real source implementation using verified engine interfaces; KATA3 must not read SPIRAL-OS-HOME storage directly, infer player input, or apply world-state mutations.
