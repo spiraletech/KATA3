@@ -21,4 +21,20 @@ int main(){
  auto unknown=good+"DIALOGUE ghost | Boo.\n";
  assert(!kata3::review_generation(unknown,*scene.scene,*contract.narrative).accepted);
  auto longtext=std::string(70000,'x');assert(!kata3::review_generation(longtext,*scene.scene,*contract.narrative).accepted);
+
+ // A generation response cannot replace a predefined choice with a new option.
+ auto substituted=template_text;
+ substituted.replace(substituted.find("CHOICE leave | Walk away | EVENT:leave_tower"),
+                    std::string("CHOICE leave | Walk away | EVENT:leave_tower").size(),
+                    "CHOICE flee | Flee | EVENT:flee_tower");
+ assert(!kata3::review_generation(substituted,*scene.scene,*contract.narrative).accepted);
+ // A model may supply several NPC lines, but the exact choices remain fixed.
+ auto many_dialogue=template_text+"DIALOGUE stranger | First warning.\nDIALOGUE stranger | Second warning.\n";
+ assert(kata3::review_generation(many_dialogue,*scene.scene,*contract.narrative).accepted);
+ // Explicitly disabled scene authority must reject otherwise valid output.
+ auto canon_off=*scene.scene;canon_off.preserve_canon=false;
+ assert(!kata3::review_generation(good,canon_off,*contract.narrative).accepted);
+ auto autonomy_off=*scene.scene;autonomy_off.player_autonomy=false;
+ assert(!kata3::review_generation(good,autonomy_off,*contract.narrative).accepted);
+
 }
