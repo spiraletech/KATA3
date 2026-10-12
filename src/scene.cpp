@@ -8,7 +8,19 @@ std::string trim(std::string s) { auto p=s.find_first_not_of(" \t\r"); if(p==std
 bool identifier(const std::string& s){ if(s.empty()||s.size()>80)return false;for(unsigned char c:s)if(!std::isalnum(c)&&c!='_'&&c!='-'&&c!='.')return false;return true; }
 }
 ParseResult parse(const std::string& source){
- ParseResult out;Scene scene;std::istringstream input(source);std::string line;std::size_t n=0;bool begun=false,ended=false;
+ ParseResult out;
+ // Reject non-text and oversized input before constructing the stream copy.
+ // Source-level errors use line 0 because no line has been parsed.
+ constexpr std::size_t kMaxSceneSourceBytes = 1024u * 1024u;
+ if(source.size() > kMaxSceneSourceBytes){
+  out.errors.push_back({0,"scene source exceeds 1048576-byte limit"});
+  return out;
+ }
+ if(source.find('\0') != std::string::npos){
+  out.errors.push_back({0,"scene source contains NUL byte"});
+  return out;
+ }
+ Scene scene;std::istringstream input(source);std::string line;std::size_t n=0;bool begun=false,ended=false;
  std::unordered_set<std::string> keys,actor_ids;
  auto error=[&](std::string msg){out.errors.push_back({n,std::move(msg)});};
  while(std::getline(input,line)){
