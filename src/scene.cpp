@@ -2,6 +2,7 @@
 #include <sstream>
 #include <unordered_set>
 #include <cctype>
+#include <algorithm>
 namespace kata3 {
 namespace {
 std::string trim(std::string s) { auto p=s.find_first_not_of(" \t\r"); if(p==std::string::npos)return {};auto e=s.find_last_not_of(" \t\r");return s.substr(p,e-p+1); }
@@ -19,7 +20,10 @@ ParseResult parse(const std::string& source){
   if(line.rfind("ACTOR ",0)==0){
    std::istringstream tokens(line.substr(6));Actor a;std::string extra;tokens>>a.id>>a.role>>a.motive;
    if(!identifier(a.id)||!identifier(a.role)||!identifier(a.motive)||(tokens>>extra)){error("ACTOR requires id role motive");continue;}
-   if(!actor_ids.insert(a.id).second){error("duplicate actor");continue;}scene.actors.push_back(std::move(a));continue;
+   if(a.role!="PLAYER"&&a.role!="NPC"){error("ACTOR role must be PLAYER or NPC");continue;}
+   if(!actor_ids.insert(a.id).second){error("duplicate actor");continue;}
+   if(scene.actors.size()>=256){error("at most 256 actors supported");continue;}
+   scene.actors.push_back(std::move(a));continue;
   }
   auto pos=line.find('=');if(pos==std::string::npos){error("expected KEY = VALUE");continue;}
   auto key=trim(line.substr(0,pos)),value=trim(line.substr(pos+1));
@@ -35,9 +39,11 @@ ParseResult parse(const std::string& source){
  if(!begun)out.errors.push_back({n+1,"missing SCENE"});
  if(!ended)out.errors.push_back({n+1,"missing END"});
  if(!identifier(scene.world)||!identifier(scene.location))out.errors.push_back({n+1,"WORLD and LOCATION required"});
- if(scene.mood.empty())out.errors.push_back({n+1,"MOOD required"});
+ if(!identifier(scene.mood))out.errors.push_back({n+1,"MOOD must be an identifier of 1..80 characters"});
  if(!scene.preserve_canon||!scene.player_autonomy)out.errors.push_back({n+1,"canon and player autonomy laws required"});
  if(scene.actors.empty())out.errors.push_back({n+1,"at least one ACTOR required"});
+ else if(std::none_of(scene.actors.begin(),scene.actors.end(),[](const Actor& a){return a.role=="PLAYER";}))
+  out.errors.push_back({n+1,"at least one PLAYER actor required"});
  if(out.errors.empty())out.scene=std::move(scene);
  return out;
 }
