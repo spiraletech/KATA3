@@ -39,6 +39,7 @@ ParseResult parse(const std::string& source){
  if(!ended)out.errors.push_back({n+1,"missing END"});
  if(!identifier(scene.world)||!identifier(scene.location))out.errors.push_back({n+1,"WORLD and LOCATION required"});
  if(scene.mood.empty())out.errors.push_back({n+1,"MOOD required"});
+ else if(!identifier(scene.mood))out.errors.push_back({n+1,"MOOD must be a valid identifier"});
  if(!scene.preserve_canon||!scene.player_autonomy)out.errors.push_back({n+1,"canon and player autonomy laws required"});
  if(scene.actors.empty())out.errors.push_back({n+1,"at least one ACTOR required"});
  if(!has_player)out.errors.push_back({n+1,"scene requires a PLAYER actor"});
