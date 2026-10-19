@@ -8,7 +8,7 @@ std::string trim(std::string s) { auto p=s.find_first_not_of(" \t\r"); if(p==std
 bool identifier(const std::string& s){ if(s.empty()||s.size()>80)return false;for(unsigned char c:s)if(!std::isalnum(c)&&c!='_'&&c!='-'&&c!='.')return false;return true; }
 }
 ParseResult parse(const std::string& source){
- ParseResult out;Scene scene;std::istringstream input(source);std::string line;std::size_t n=0;bool begun=false,ended=false;
+ ParseResult out;Scene scene;std::istringstream input(source);std::string line;std::size_t n=0;bool begun=false,ended=false,has_player=false;
  std::unordered_set<std::string> keys,actor_ids;
  auto error=[&](std::string msg){out.errors.push_back({n,std::move(msg)});};
  while(std::getline(input,line)){
@@ -19,7 +19,10 @@ ParseResult parse(const std::string& source){
   if(line.rfind("ACTOR ",0)==0){
    std::istringstream tokens(line.substr(6));Actor a;std::string extra;tokens>>a.id>>a.role>>a.motive;
    if(!identifier(a.id)||!identifier(a.role)||!identifier(a.motive)||(tokens>>extra)){error("ACTOR requires id role motive");continue;}
-   if(!actor_ids.insert(a.id).second){error("duplicate actor");continue;}scene.actors.push_back(std::move(a));continue;
+   if(a.role!="PLAYER"&&a.role!="NPC"){error("ACTOR role must be PLAYER or NPC");continue;}
+   if(!actor_ids.insert(a.id).second){error("duplicate actor");continue;}
+   if(a.role=="PLAYER")has_player=true;
+   scene.actors.push_back(std::move(a));continue;
   }
   auto pos=line.find('=');if(pos==std::string::npos){error("expected KEY = VALUE");continue;}
   auto key=trim(line.substr(0,pos)),value=trim(line.substr(pos+1));
@@ -38,6 +41,7 @@ ParseResult parse(const std::string& source){
  if(scene.mood.empty())out.errors.push_back({n+1,"MOOD required"});
  if(!scene.preserve_canon||!scene.player_autonomy)out.errors.push_back({n+1,"canon and player autonomy laws required"});
  if(scene.actors.empty())out.errors.push_back({n+1,"at least one ACTOR required"});
+ if(!has_player)out.errors.push_back({n+1,"scene requires a PLAYER actor"});
  if(out.errors.empty())out.scene=std::move(scene);
  return out;
 }
