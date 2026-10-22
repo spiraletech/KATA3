@@ -12,7 +12,19 @@ ParseResult parse(const std::string& source){
  std::unordered_set<std::string> keys,actor_ids;
  auto error=[&](std::string msg){out.errors.push_back({n,std::move(msg)});};
  while(std::getline(input,line)){
-  ++n;line=trim(line);if(line.empty()||line[0]=='#')continue;
+  ++n;
+  // Validate the raw line before trimming, comment skipping, or token extraction.
+  // Only TAB and a final CR (for CRLF files) are permitted C0 controls.
+  bool invalid_control = false;
+  for (std::size_t i = 0; i < line.size(); ++i) {
+   const auto c = static_cast<unsigned char>(line[i]);
+   if ((c < 0x20 && c != '\t' && !(c == '\r' && i + 1 == line.size())) || c == 0x7f) {
+    invalid_control = true;
+    break;
+   }
+  }
+  if (invalid_control) { error("invalid control character in scene line"); continue; }
+  line=trim(line);if(line.empty()||line[0]=='#')continue;
   if(ended){error("content after END");continue;}
   if(!begun){if(line.rfind("SCENE ",0)!=0){error("expected SCENE identifier");continue;}scene.id=trim(line.substr(6));if(!identifier(scene.id))error("invalid scene identifier");begun=true;continue;}
   if(line=="END"){ended=true;continue;}
