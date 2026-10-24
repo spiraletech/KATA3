@@ -2,15 +2,22 @@
 #include <kata3/scene.hpp>
 #include <kata3/narrative.hpp>
 #include <fstream>
-#include <iterator>
 #include <string>
 namespace kata3 {
 namespace {
 bool read_text(const std::filesystem::path& p,std::string& value) {
  std::ifstream in(p,std::ios::binary);
  if(!in)return false;
- value.assign(std::istreambuf_iterator<char>(in),{});
- return !in.bad() && value.size()<=65536;
+ // Read at most one byte beyond the 64 KiB asset limit. Never buffer an
+ // untrusted entire file before validating its size.
+ constexpr std::size_t max_bytes=65536;
+ std::string bounded(max_bytes+1,'\0');
+ in.read(bounded.data(),static_cast<std::streamsize>(bounded.size()));
+ const auto count=in.gcount();
+ if(in.bad()||count>static_cast<std::streamsize>(max_bytes)||(!in.eof()&&in.fail()))return false;
+ bounded.resize(static_cast<std::size_t>(count));
+ value.swap(bounded);
+ return true;
 }
 }
 int run_console(std::istream& input,std::ostream& output,std::ostream& errors,
