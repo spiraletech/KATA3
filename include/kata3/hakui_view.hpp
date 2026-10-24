@@ -37,7 +37,7 @@ inline ImportResult import_read_only(const Snapshot& snapshot) {
   out.diagnostics.push_back({0,"host must explicitly confirm canon and player-input authority"});
  if(snapshot.actors.empty()||snapshot.actors.size()>256)
   out.diagnostics.push_back({0,"actor count must be 1..256"});
- bool has_player=false;std::unordered_set<std::string> ids;
+ std::size_t player_count=0;std::unordered_set<std::string> ids;
  kata3::Scene scene;
  scene.id=snapshot.scene_id;scene.world=snapshot.world;
  scene.location=snapshot.location;scene.mood=snapshot.mood;
@@ -48,10 +48,11 @@ inline ImportResult import_read_only(const Snapshot& snapshot) {
   if(a.role!="PLAYER"&&a.role!="NPC")
    out.diagnostics.push_back({0,"actor role must be PLAYER or NPC"});
   if(!ids.insert(a.id).second)out.diagnostics.push_back({0,"duplicate actor id"});
-  if(a.role=="PLAYER")has_player=true;
+  if(a.role=="PLAYER")++player_count;
   scene.actors.push_back({a.id,a.role,a.motive});
  }
- if(!has_player)out.diagnostics.push_back({0,"snapshot requires a player actor"});
+ if(player_count==0)out.diagnostics.push_back({0,"snapshot requires a player actor"});
+ if(player_count>1)out.diagnostics.push_back({0,"snapshot requires exactly one player actor"});
  if(out.diagnostics.empty())out.scene=std::move(scene);
  return out;
 }
