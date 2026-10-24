@@ -24,5 +24,18 @@ int main(){
  host.approved=false;assert(!kata3::hakui::export_read_only(host));host.approved=true;
  host.player=false;assert(!kata3::hakui::export_read_only(host));host.player=true;
  host.actors[1].id="ether";assert(!kata3::hakui::export_read_only(host));
- host.actors[1].id="guide";host.actors.resize(257);assert(!kata3::hakui::export_read_only(host));
+ host.actors[1].id="guide";
+ // The read-only HAKUI boundary must expose exactly one player actor.
+ host.actors[1].role="PLAYER";
+ auto two_players=kata3::hakui::export_read_only(host);
+ assert(!two_players && !two_players.snapshot);
+ assert(two_players.diagnostics.size()==1);
+ assert(two_players.diagnostics.front().message=="snapshot requires exactly one player actor");
+ kata3::hakui::Snapshot direct{"tower","HAKUI","DEFACTO","MIST",true,true,host.actors};
+ assert(!kata3::hakui::import_read_only(direct));
+ host.actors[1].role="NPC";
+ host.actors[0].role="NPC";
+ assert(!kata3::hakui::export_read_only(host));
+ host.actors[0].role="PLAYER";
+ host.actors.resize(257);assert(!kata3::hakui::export_read_only(host));
 }
