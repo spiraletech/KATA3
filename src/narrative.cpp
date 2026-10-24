@@ -11,7 +11,11 @@ bool prose(const std::string& s){return !s.empty()&&s.size()<=1024&&std::all_of(
 std::vector<std::string> split(const std::string& s){std::vector<std::string> out;std::size_t first=0;while(true){auto pos=s.find('|',first);out.push_back(trim(s.substr(first,pos==std::string::npos?pos:pos-first)));if(pos==std::string::npos)break;first=pos+1;}return out;}
 }
 NarrativeResult parse_narrative(std::string_view source,const Scene& scene){
- NarrativeResult out;Narrative n;std::istringstream in{std::string(source)};std::string line;std::size_t number=0;std::unordered_set<std::string> ids;bool has_player=false;
+ NarrativeResult out;
+ // Keep direct sidecar parsing within the generation-review 64 KiB boundary.
+ // Check the view length before copying or tokenizing untrusted input.
+ if(source.size()>65536){out.errors.push_back({0,"narrative source exceeds 64 KiB"});return out;}
+ Narrative n;std::istringstream in{std::string(source)};std::string line;std::size_t number=0;std::unordered_set<std::string> ids;bool has_player=false;
  for(const auto& actor:scene.actors)if(actor.role=="PLAYER")has_player=true;
  if(!scene.preserve_canon||!scene.player_autonomy)out.errors.push_back({0,"scene laws require canon and player autonomy"});
  if(!has_player)out.errors.push_back({0,"scene requires a PLAYER actor"});
